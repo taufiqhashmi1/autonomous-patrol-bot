@@ -3,28 +3,31 @@
 #include <ESPAsyncWebServer.h>
 #include <Wire.h>
 #include <DHT.h>
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
 
 // ----- WiFi Credentials -----
 const char* ssid = "MyWiFiCar";
 const char* password = "12345678";
 
 // ----- Pin Definitions -----
-#define TRIG_PIN 16
-#define ECHO_PIN 0
-#define DHT_PIN 14
+#define TRIG_PIN 12  // Safe to use (was 16)
+#define ECHO_PIN 13  // Safe to use (was 0)
+#define DHT_PIN 2    // Safe to use (was 14)
 
-#define I2C_SDA 15
-#define I2C_SCL 2
+#define I2C_SDA 15   // Safe to use
+#define I2C_SCL 14   // Safe to use (was 2)
+
+// ----- NEW MPU Logic -----
+const int MPU_addr = 0x68; // I2C address of the MPU-6050
+int16_t AcX, AcY, AcZ, Tmp, GyX, GyY, GyZ;
+// -------------------------
 
 // ----- Sensor & Server Objects -----
 DHT dht(DHT_PIN, DHT11);
-Adafruit_MPU6050 mpu;
+// Adafruit_MPU6050 mpu; // <-- REMOVED
 AsyncWebServer server(80);
 
 // ----- State Flag for MPU6050 -----
-bool mpuAvailable = false; // This flag will track if the MPU is connected
+// bool mpuAvailable = false; // <-- REMOVED
 
 // ----- HTML Page with CSS and JavaScript -----
 const char* htmlPage PROGMEM = R"rawliteral(
@@ -61,15 +64,16 @@ const char* htmlPage PROGMEM = R"rawliteral(
   </div>
 
   <h3>Inertial Measurement (MPU-6050)</h3>
+  <p style="font-size: 12px; color: #888;">(Displaying raw sensor values)</p> <!-- Clarification added -->
   <div class="container">
-    <div class="sensorBox"><span class="label">Accel X</span><br><span id="accelX">--</span> m/s²</div>
-    <div class="sensorBox"><span class="label">Accel Y</span><br><span id="accelY">--</span> m/s²</div>
-    <div class="sensorBox"><span class="label">Accel Z</span><br><span id="accelZ">--</span> m/s²</div>
+    <div class="sensorBox"><span class="label">Accel X</span><br><span id="accelX">--</span></div>
+    <div class="sensorBox"><span class="label">Accel Y</span><br><span id="accelY">--</span></div>
+    <div class="sensorBox"><span class="label">Accel Z</span><br><span id="accelZ">--</span></div>
   </div>
   <div class="container">
-    <div class="sensorBox"><span class="label">Gyro X</span><br><span id="gyroX">--</span> rad/s</div>
-    <div class="sensorBox"><span class="label">Gyro Y</span><br><span id="gyroY">--</span> rad/s</div>
-    <div class="sensorBox"><span class="label">Gyro Z</span><br><span id="gyroZ">--</span> rad/s</div>
+    <div class="sensorBox"><span class="label">Gyro X</span><br><span id="gyroX">--</span></div>
+    <div class="sensorBox"><span class="label">Gyro Y</span><br><span id="gyroY">--</span></div>
+    <div class="sensorBox"><span class="label">Gyro Z</span><br><span id="gyroZ">--</span></div>
   </div>
 
 <script>
@@ -109,6 +113,22 @@ long getUltrasonicDistance() {
   return (duration == 0) ? 0 : distance;
 }
 
+// --- NEW mpu_read() function from your other code ---
+void mpu_read() {
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x3B); // starting with register 0x3B (ACCEL_XOUT_H)
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU_addr, 14, true); // request a total of 14 registers
+  AcX = Wire.read() << 8 | Wire.read(); // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
+  AcY = Wire.read() << 8 | Wire.read(); // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+  AcZ = Wire.read() << 8 | Wire.read(); // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+  Tmp = Wire.read() << 8 | Wire.read(); // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
+  GyX = Wire.read() << 8 | Wire.read(); // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
+  GyY = Wire.read() << 8 | Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
+  GyZ = Wire.read() << 8 | Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+}
+// ----------------------------------------------------
+
 // ----- Setup -----
 void setup() {
   Serial.begin(115200);
@@ -118,16 +138,13 @@ void setup() {
   pinMode(ECHO_PIN, INPUT);
   dht.begin();
 
-  // --- MODIFIED MPU6050 INITIALIZATION ---
-  // Try to initialize the MPU6050, but don't stop if it fails.
-  if (mpu.begin()) {
-    mpuAvailable = true;
-    Serial.println("MPU6050 Found!");
-    mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-    mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  } else {
-    Serial.println("MPU6050 not found. Continuing without it.");
-  }
+  // --- REPLACED MPU6050 INITIALIZATION ---
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x6B); // PWR_MGMT_1 register
+  Wire.write(0);    // set to zero (wakes up the MPU-6050)
+  Wire.endTransmission(true);
+  Serial.println("Wrote to IMU");
+  // ---------------------------------------
   
   WiFi.softAP(ssid, password);
   Serial.print("Access Point IP: ");
@@ -143,35 +160,37 @@ void setup() {
     float humidity = dht.readHumidity();
     
     // Create variables for MPU data with default values
+    // These (float) are kept to maintain compatibility with the JSON string
     float accelX = 0.0, accelY = 0.0, accelZ = 0.0;
     float gyroX = 0.0, gyroY = 0.0, gyroZ = 0.0;
 
-    // --- MODIFIED MPU6050 READING ---
-    // Only read from the MPU if it was available during setup
-    if (mpuAvailable) {
-      sensors_event_t a, g, t;
-      mpu.getEvent(&a, &g, &t);
-      accelX = a.acceleration.x;
-      accelY = a.acceleration.y;
-      accelZ = a.acceleration.z;
-      gyroX = g.gyro.x;
-      gyroY = g.gyro.y;
-      gyroZ = g.gyro.z;
-    }
+    // --- REPLACED MPU6050 READING LOGIC ---
+    mpu_read(); // This populates the global AcX, AcY... GyZ variables
+
+    // Assign raw int16_t values to the existing float variables
+    // This maintains compatibility with the JSON string and webpage
+    accelX = AcX;
+    accelY = AcY;
+    accelZ = AcZ;
+    gyroX = GyX;
+    gyroY = GyY;
+    gyroZ = GyZ;
+    // --------------------------------------
 
     if (isnan(temp)) temp = 0.0;
     if (isnan(humidity)) humidity = 0.0;
     
+    // This JSON structure is UNCHANGED and still works
     String json = "{";
     json += "\"distance\":" + String(distance) + ",";
     json += "\"temperature\":" + String(temp, 1) + ",";
     json += "\"humidity\":" + String(humidity, 1) + ",";
-    json += "\"accelX\":" + String(accelX, 2) + ",";
-    json += "\"accelY\":" + String(accelY, 2) + ",";
-    json += "\"accelZ\":" + String(accelZ, 2) + ",";
-    json += "\"gyroX\":" + String(gyroX, 2) + ",";
-    json += "\"gyroY\":" + String(gyroY, 2) + ",";
-    json += "\"gyroZ\":" + String(gyroZ, 2);
+    json += "\"accelX\":" + String(accelX, 0) + ","; // Changed to 0 decimals
+    json += "\"accelY\":" + String(accelY, 0) + ","; // Changed to 0 decimals
+    json += "\"accelZ\":" + String(accelZ, 0) + ","; // Changed to 0 decimals
+    json += "\"gyroX\":" + String(gyroX, 0) + ",";  // Changed to 0 decimals
+    json += "\"gyroY\":" + String(gyroY, 0) + ",";  // Changed to 0 decimals
+    json += "\"gyroZ\":" + String(gyroZ, 0);         // Changed to 0 decimals
     json += "}";
     
     request->send(200, "application/json", json);
