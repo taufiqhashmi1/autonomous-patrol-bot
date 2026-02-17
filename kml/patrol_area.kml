@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Test Patrol Square</name>
+    <Placemark>
+      <name>Patrol Perimeter</name>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <tessellate>1</tessellate>
+            <coordinates>
+              72.816000,19.185000,0
+              72.816200,19.185000,0
+              72.816200,19.185200,0
+              72.816000,19.185200,0
+              72.816000,19.185000,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>
