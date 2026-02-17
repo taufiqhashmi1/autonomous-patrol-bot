@@ -4,12 +4,15 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/gctronic/e-puck/protos/E-puck.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/animals/protos/Cat.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/humans/pedestrian/protos/Pedestrian.proto"
 
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.10434259912700221 0.12761921124741918 0.9863194000565985 1.38431799839108
-  position 0.29062853912219716 -1.7055108136128552 0.2878859109634614
+  orientation -0.4736990950576402 0.5756772495033703 0.6664869629226119 1.7800189145674694
+  position -0.03920989290260821 -3.7338877414039224 8.397261323999809
 }
 TexturedBackground {
 }
@@ -19,6 +22,18 @@ RectangleArena {
   floorSize 5 5
 }
 E-puck {
+  hidden position_0_0 4786.010089965356
+  hidden position_0_1 4649.363394169555
+  hidden linearVelocity_0 0.0019185219769718462 0.06002822616822885 -4.805273301824102e-09
+  hidden angularVelocity_0 -0.003923108339236223 0.0001253883194548498 -1.1672765650785784e-08
+  hidden rotation_1 0 -1 0 1.7771141054886943
+  hidden linearVelocity_1 0.0019191489217721303 0.06004784180504563 1.1174093266033766e-10
+  hidden angularVelocity_1 -3.002392090218645 0.09595748191084581 6.611225327909531e-08
+  hidden rotation_2 0 -1 0 0.19373314333874436
+  hidden linearVelocity_2 0.0019191489111879318 0.06004784148501596 -1.1712716359093195e-10
+  hidden angularVelocity_2 -3.0023920840179232 0.09595741004812232 -8.318148899029703e-08
+  translation 1.8012569182988092 -0.7430237732820886 -6.396173968562131e-05
+  rotation 7.356714123974208e-05 -7.595474472066202e-05 0.9999999944093763 1.5388468776800657
   controller "patrol_controller"
   turretSlot [
     GPS {
@@ -26,4 +41,15 @@ E-puck {
     Compass {
     }
   ]
+}
+RubberDuck {
+  translation 0.10441379587119105 -1.8955150745883107 0.06009834792615411
+  rotation -0.0013729237647512116 7.126046390908308e-05 -0.9999990550006947 0.37154427169739324
+  scale 3
+}
+Pedestrian {
+  translation -1.87 0 1.27
+}
+Cat {
+  translation 1.76 0 0
 }

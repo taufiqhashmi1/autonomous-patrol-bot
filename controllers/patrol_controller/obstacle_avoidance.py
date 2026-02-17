@@ -1,32 +1,38 @@
-# obstacle_avoidance.py
+def compute_wall_follow(fl_val, fr_val, l_val, r_val, threshold=150.0, max_speed=3.14, follow_dir="LEFT"):
+    crash_threshold = 400.0 
 
-def compute_avoidance(fl_val, fr_val, l_val, r_val, threshold=80.0, max_speed=6.28):
-    """
-    Evaluates sensor readings and outputs override velocities.
-    Returns: (is_avoiding, left_velocity, right_velocity)
-    """
-    front_obstacle = fl_val > threshold or fr_val > threshold
-    left_obstacle = l_val > threshold
-    right_obstacle = r_val > threshold
-
-    if front_obstacle:
-        if left_obstacle:
-            # Blocked front and left: Spin right
-            return True, max_speed, -max_speed
-        elif right_obstacle:
-            # Blocked front and right: Spin left
-            return True, -max_speed, max_speed
+    # --- 1. ANTI-WEDGE / DE-COLLISION ---
+    # Now includes side sensors. If snagged, reverse asymmetrically to peel away.
+    if fl_val > crash_threshold or fr_val > crash_threshold or l_val > crash_threshold or r_val > crash_threshold:
+        if l_val > crash_threshold:
+            # Snagged on left: back up while twisting right
+            return -max_speed, -max_speed * 0.5
+        elif r_val > crash_threshold:
+            # Snagged on right: back up while twisting left
+            return -max_speed * 0.5, -max_speed
         else:
-            # Blocked dead ahead: Default spin right
-            return True, max_speed, -max_speed
-            
-    elif left_obstacle:
-        # Glancing obstacle on left: Veer right
-        return True, max_speed, max_speed * 0.4
-        
-    elif right_obstacle:
-        # Glancing obstacle on right: Veer left
-        return True, max_speed * 0.4, max_speed
+            return -max_speed, -max_speed
 
-    # No obstacles
-    return False, 0.0, 0.0
+    # --- 2. SMOOTH DYNAMIC BUG2 ---
+    front = fl_val > threshold or fr_val > threshold
+    left = l_val > threshold
+    right = r_val > threshold
+
+    if follow_dir == "LEFT":
+        if front:
+            return max_speed, -max_speed
+        elif left:
+            # Increased the outward curve from 0.9 to 0.75 to steer wider around complex shapes
+            return max_speed, max_speed * 0.75
+        else:
+            return max_speed * 0.5, max_speed
+            
+    elif follow_dir == "RIGHT":
+        if front:
+            return -max_speed, max_speed
+        elif right:
+            return max_speed * 0.75, max_speed
+        else:
+            return max_speed, max_speed * 0.5
+
+    return 0.0, 0.0
